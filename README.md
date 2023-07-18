@@ -41,7 +41,7 @@ Data: 02 01 06 03 03 88 ec 11 09 47 6f 76 65 65 5f 48 35 30 37 34 5f 46 37 31 41
                      Mfg Id       G  o  v  e  e  _  H  5  0  7  4  _  F  7  1  A       Mfg Id   TempC Humid Bat
 ```
 
-##Mfg. Data Field (NimBLE getManufacturerData().data())
+## Mfg. Data Field (NimBLE getManufacturerData().data())
 
 ```
 88 ec 00 f8 09 cf 11 64 02
