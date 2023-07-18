@@ -1,3 +1,29 @@
+#GOVEE 5074 Temperature scanner for ESP32 
+
+Proof of concept. May or may not leak memory, crash, etc.
+
+Not valid for temperature values below 0C.
+
+Uses ArduinoJSON, NimBLE, ESP-NOW
+
+Listens for BLE advertisements from any GOVEE 5074 sensor 
+  - extracts temperature and humidity from BLE advertisement
+  - creates JSON doc
+  - forwards doc to ESP-NOW broadcast address
+
+
+Sample ESP-NOW packet:
+```
+{
+  "D":"ESP-GOVEE",
+  "address":"a4:c1:38:cb:db:3a",
+  "deviceName":"Govee_H5074_DB3A",
+  "tempInC":18.87999916,
+  "humidity":51.66999817,
+  "battery":97
+}
+```
+
 #Govee 5074 decode notes
 
 Notes on passively monitoring Govee BLE 5074 temperature sensor using and ESP32 
