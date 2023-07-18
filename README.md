@@ -1,4 +1,4 @@
-#GOVEE 5074 Temperature scanner for ESP32 
+# GOVEE 5074 Temperature scanner for ESP32 
 
 Proof of concept. May or may not leak memory, crash, etc.
 
@@ -24,13 +24,13 @@ Sample ESP-NOW packet:
 }
 ```
 
-#Govee 5074 decode notes
+# Govee 5074 decode notes
 
 Notes on passively monitoring Govee BLE 5074 temperature sensor using and ESP32 
 
 Reference: https://github.com/Thrilleratplay/GoveeWatcher
 
-##Govee 5074 Advertising Packet (NimBLE getPayload()):
+## Govee 5074 Advertising Packet (NimBLE getPayload()):
 
 ```
 Byte: 00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35
@@ -49,7 +49,7 @@ Data: 02 01 06 03 03 88 ec 11 09 47 6f 76 65 65 5f 48 35 30 37 34 5f 46 37 31 41
 Mfg Id   TempC Humid Bat
 ```
 
-###Example Mfg. data:
+### Example Mfg. data:
 ```
 88ec00580ae6116402
 ```
