@@ -54,11 +54,11 @@ Mfg Id   TempC Humid Bat
 88ec00580ae6116402
 ```
 Temperature (C): `580a` 
-Convert to int: `data[3] << 0) | (data[4]) << 8 = 2648` 
-Divide by 100 = 26.48 deg. C
+  - Convert to int: `data[3] << 0) | (data[4]) << 8 = 2648` 
+  - Divide by 100 = 26.48 deg. C
 
 Humidity: `e611`
-Convert to int: `data[5] << 0) | (data[6]) << 8 = 4582` 
-Divide by 100 = 45.82 %
+  - Convert to int: `data[5] << 0) | (data[6]) << 8 = 4582` 
+  - Divide by 100 = 45.82 %
 
 Battery Pct: 64 = 64 hex = 100%
