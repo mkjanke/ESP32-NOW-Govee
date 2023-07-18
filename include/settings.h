@@ -7,4 +7,4 @@
 #define ESPNOW_QUEUE_SIZE 10
 #define ESP_BUFFER_SIZE 200
 
-#endif //SETTINS_H
+#endif //SETTINGS_H
