@@ -2,19 +2,19 @@
   Task writeToEspNow:
     Dequeue data from ESP-NOW queue, forward to ESP-NOW:
       send_to_EspNow_Queue --> writeToEspNow() --> Outgoing ESP-NOW packet
-  
+
   Task espnowHeartbeat:
      Send uptime and stack data to send_to_EspNow_Queue
      Send uptime and stack data to Nextion serial port
 */
 #include "espnow.h"
+
 #include <Arduino.h>
 
 // MAC Address of ESP_NOW receiver
 uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 esp_now_peer_info_t peerInfo;
 
-// TaskHandle_t xhandleSerialWriteHandle = NULL;
 TaskHandle_t xhandleEspNowWriteHandle = NULL;
 TaskHandle_t xhandleHeartbeat = NULL;
 
@@ -47,7 +47,8 @@ void writeToEspNow(void *parameter) {
     vTaskDelay(10 / portTICK_PERIOD_MS);
     // Dequeue
     if (xQueueReceive(send_to_EspNow_queue, sendBuffer, portMAX_DELAY) == pdTRUE) {
-      Serial.println("writeToEspNow" + (String)sendBuffer);
+      Serial.print("writeToEspNow");
+      Serial.println(sendBuffer);
       esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)sendBuffer, ESP_BUFFER_SIZE);
     }
   }
@@ -55,33 +56,37 @@ void writeToEspNow(void *parameter) {
 
 // Send heartbeat out to ESP_NOW broadcastAddress
 void espnowHeartbeat(void *parameter) {
-  String jsonMessage = "";
-  jsonMessage.reserve(ESP_BUFFER_SIZE + 2);
-  StaticJsonDocument<ESP_BUFFER_SIZE> doc;
+  std::string jsonString = "";
+  jsonString.reserve(ESP_BUFFER_SIZE + 2);
   for (;;) {
-    uint64_t now = esp_timer_get_time() / 1000 / 1000;
     uptime();
-    doc.clear();
-    jsonMessage.clear();
-    doc["D"] = DEVICE_NAME;
-    doc["T"] = uptimeBuffer;
-    doc["R"] = uxTaskGetStackHighWaterMark(xhandleHeartbeat);
-    doc["W"] = uxTaskGetStackHighWaterMark(xhandleEspNowWriteHandle);
-    doc["H"] = esp_get_minimum_free_heap_size();
+    {
+      StaticJsonDocument<ESP_BUFFER_SIZE> doc;
+      doc["D"] = DEVICE_NAME;
+      doc["T"] = uptimeBuffer;
+      doc["R"] = uxTaskGetStackHighWaterMark(xhandleHeartbeat);
+      doc["W"] = uxTaskGetStackHighWaterMark(xhandleEspNowWriteHandle);
+      doc["Q"] = uxQueueMessagesWaiting(send_to_EspNow_queue);
+      doc["H"] = esp_get_minimum_free_heap_size();
 
-    serializeJson(doc, jsonMessage);  // Convert JsonDoc to JSON string
-    if (!espNowSend(jsonMessage)) {
-      Serial.print("Error sending data: ");
+      serializeJson(doc, jsonString);  // Convert JsonDoc to JSON string
+      if (!espNowSend(jsonString)) {
+        Serial.print("Error sending data: ");
+      }
     }
+    jsonString.clear();
     vTaskDelay(10000 / portTICK_PERIOD_MS);
   }
 }
 
 // Functions
-// Send String to ESP-NOW peers (broadcast address)
-bool espNowSend(const String &message) {
-  if (message.length() <= ESP_BUFFER_SIZE) {
-    if (xQueueSend(send_to_EspNow_queue, message.c_str(), 0) == pdTRUE) {
+
+// Queue message to send_to_EspNow_queue
+bool espNowSend(const char *charMessage) {
+  char buffer[ESP_BUFFER_SIZE] = {0};
+  if (strlen(charMessage) <= ESP_BUFFER_SIZE - 1) {
+    strncpy(buffer, charMessage, ESP_BUFFER_SIZE);  // copy incoming char[] into cleared buffer
+    if (xQueueSend(send_to_EspNow_queue, buffer, 0) == pdTRUE) {
       return true;
     } else {
       Serial.println("Error sending to queue");
@@ -91,12 +96,24 @@ bool espNowSend(const String &message) {
   return false;
 }
 
-// Send JSON doc to ESP-NOW peers (broadcast address)
+bool espNowSend(const std::string &stringMessage) {
+  char charMessage[ESP_BUFFER_SIZE] = {0};
+  if (stringMessage.size() <= ESP_BUFFER_SIZE) {
+    std::copy(stringMessage.begin(), stringMessage.end(), charMessage);
+    if (xQueueSend(send_to_EspNow_queue, charMessage, 0) == pdTRUE) {
+      return true;
+    } else {
+      Serial.println("Error sending to queue");
+      return false;
+    }
+  }
+  return false;
+}
+
 bool espNowSend(const JsonDocument &doc) {
-  String jsonMessage = "";
-  serializeJson(doc, jsonMessage);  // Convert JsonDoc to JSON string
-  if (jsonMessage.length() <= ESP_BUFFER_SIZE) {
-    if (xQueueSend(send_to_EspNow_queue, jsonMessage.c_str(), 0) == pdTRUE) {
+  char jsonMessage[ESP_BUFFER_SIZE] = {0};
+  if (serializeJson(doc, jsonMessage, ESP_BUFFER_SIZE) <= ESP_BUFFER_SIZE) {
+    if (xQueueSend(send_to_EspNow_queue, jsonMessage, 0) == pdTRUE) {
       return true;
     } else {
       Serial.println("Error sending to queue");
@@ -133,7 +150,6 @@ bool initEspNow() {
     return false;
   }
   xTaskCreate(espnowHeartbeat, "Heartbeat Handler", 2400, NULL, 4, &xhandleHeartbeat);
-  // xTaskCreate(writeToNextion, "Nextion Serial Write Handler", 2400, NULL, 4, &xhandleSerialWriteHandle);
   xTaskCreate(writeToEspNow, "ESP_NOW Write Handler", 2000, NULL, 4, &xhandleEspNowWriteHandle);
 
   return true;
