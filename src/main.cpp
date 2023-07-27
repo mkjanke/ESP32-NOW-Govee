@@ -65,13 +65,19 @@ class MyAdvertisedDeviceCallbacks : public NimBLEAdvertisedDeviceCallbacks {
           ((byte)advertisedDevice->getManufacturerData().data()[0] == 0x88) &&
           ((byte)advertisedDevice->getManufacturerData().data()[1] == 0xec)) {
         // Extract temperature, humidity and battery pct.
-        double tempInC = ((double)((uint16_t)((advertisedDevice->getManufacturerData()[3] << 0) |
+        double tempInC = ((double)((int16_t)((advertisedDevice->getManufacturerData()[3] << 0) |
                                             (advertisedDevice->getManufacturerData()[4]) << 8))) /
                         100;
-        double humPct = ((double)((uint16_t)((advertisedDevice->getManufacturerData()[5] << 0) |
+        double humPct = ((double)((int16_t)((advertisedDevice->getManufacturerData()[5] << 0) |
                                            (advertisedDevice->getManufacturerData()[6]) << 8))) /
                        100;
         uint8_t battPct = (uint8_t)advertisedDevice->getManufacturerData()[7];
+
+        // char* payloaddata = NimBLEUtils::buildHexData(NULL, (uint8_t*)advertisedDevice->getPayload(), advertisedDevice->getPayloadLength());
+        // Serial.println(payloaddata);
+        // if (payloaddata != NULL) {
+        //   free(payloaddata);
+        // }
 
         Serial.print(advertisedDevice->getName().c_str());
         Serial.print(" ");

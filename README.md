@@ -1,8 +1,6 @@
 # GOVEE H5074 Temperature scanner for ESP32 
 
-Proof of concept. May or may not leak memory, crash, etc.
-
-Not valid for temperature values below 0C.
+Proof of concept. May leak memory, crash, etc.
 
 Uses ArduinoJSON, NimBLE, ESP-NOW
 
