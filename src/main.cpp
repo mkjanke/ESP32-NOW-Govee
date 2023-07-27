@@ -37,16 +37,15 @@ NimBLEUUID serviceUuid("ec88");  // Govee 5074 serivice UUID
 extern uint8_t broadcastAddress[];  // ESP-NOW broadcast Address
 
 // Create JSON doc and forward to ESP-NOW queue
-bool createAndSendJSON(const std::string& address, const std::string& deviceName, float tempInC, float humidity,
+bool createAndSendJSON(const std::string& address, const std::string& deviceName, double tempInC, double humidity,
                        float batteryPct) {
-  StaticJsonDocument<ESP_BUFFER_SIZE> doc;
+  StaticJsonDocument<ESP_BUFFER_SIZE * 2> doc;
   std::string jsonString = "";
   doc["D"] = DEVICE_NAME;
-  doc["address"] = address;
-  doc["deviceName"] = deviceName;
-  doc["tempInC"] = tempInC;
-  doc["humidity"] = humidity;
-  doc["battery"] = batteryPct;
+  // doc[deviceName + "/address"] = address;
+  doc[deviceName + "/tempInC"] = tempInC;
+  doc[deviceName + "/humidity"] = humidity;
+  doc[deviceName + "/battery"] = batteryPct;
 
   serializeJson(doc, jsonString);  // Convert JsonDoc to JSON string
   bool result = espNowSend(jsonString);
@@ -66,10 +65,10 @@ class MyAdvertisedDeviceCallbacks : public NimBLEAdvertisedDeviceCallbacks {
           ((byte)advertisedDevice->getManufacturerData().data()[0] == 0x88) &&
           ((byte)advertisedDevice->getManufacturerData().data()[1] == 0xec)) {
         // Extract temperature, humidity and battery pct.
-        float tempInC = ((float)((uint16_t)((advertisedDevice->getManufacturerData()[3] << 0) |
+        double tempInC = ((double)((uint16_t)((advertisedDevice->getManufacturerData()[3] << 0) |
                                             (advertisedDevice->getManufacturerData()[4]) << 8))) /
                         100;
-        float humPct = ((float)((uint16_t)((advertisedDevice->getManufacturerData()[5] << 0) |
+        double humPct = ((double)((uint16_t)((advertisedDevice->getManufacturerData()[5] << 0) |
                                            (advertisedDevice->getManufacturerData()[6]) << 8))) /
                        100;
         uint8_t battPct = (uint8_t)advertisedDevice->getManufacturerData()[7];
