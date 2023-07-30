@@ -9,16 +9,13 @@ Listens for BLE advertisements from any GOVEE 5074 sensor
   - creates JSON doc
   - forwards doc to ESP-NOW broadcast address
 
-
 Sample ESP-NOW packet:
 ```
 {
   "D":"ESP-GOVEE",
-  "address":"a4:c1:38:cb:db:3a",
-  "deviceName":"Govee_H5074_DB3A",
-  "tempInC":18.87999916,
-  "humidity":51.66999817,
-  "battery":97
+  "Govee_H5074_DB3A/tempInC":18.87999916,
+  "Govee_H5074_DB3A/humidity":51.66999817,
+  "Govee_H5074_DB3A/battery":97
 }
 ```
 
