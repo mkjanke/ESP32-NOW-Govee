@@ -16,11 +16,9 @@ Listens for BLE advertisements from any GOVEE 5074 sensor
 Sample ESP-NOW packet:
 {
   "D":"ESP-GOVEE",
-  "address":"a4:c1:38:cb:db:3a",
-  "deviceName":"Govee_H5074_DB3A",
-  "tempInC":18.87999916,
-  "humidity":51.66999817,
-  "battery":97
+  "Govee_H5074_DB3A/tempInC":18.87999916,
+  "Govee_H5074_DB3A/humidity":51.66999817,
+  "Govee_H5074_DB3A/battery":97
 }
 
 */
@@ -37,20 +35,23 @@ NimBLEUUID serviceUuid("ec88");  // Govee 5074 serivice UUID
 extern uint8_t broadcastAddress[];  // ESP-NOW broadcast Address
 
 // Create JSON doc and forward to ESP-NOW queue
-bool createAndSendJSON(const std::string& address, const std::string& deviceName, double tempInC, double humidity,
+bool createAndSendJSON(const std::string& deviceName, double tempInC, double humidity,
                        float batteryPct) {
+  char buffer[ESP_BUFFER_SIZE] = {0};
   StaticJsonDocument<ESP_BUFFER_SIZE * 2> doc;
-  std::string jsonString = "";
+
   doc["D"] = DEVICE_NAME;
-  // doc[deviceName + "/address"] = address;
   doc[deviceName + "/tempInC"] = tempInC;
   doc[deviceName + "/humidity"] = humidity;
   doc[deviceName + "/battery"] = batteryPct;
 
-  serializeJson(doc, jsonString);  // Convert JsonDoc to JSON string
-  bool result = espNowSend(jsonString);
+  if (serializeJson(doc, buffer) <= ESP_BUFFER_SIZE){
+    bool result = espNowSend(buffer);
+    doc.clear();
+    return result;
+  }
   doc.clear();
-  return result;
+  return false;
 }
 
 class MyAdvertisedDeviceCallbacks : public NimBLEAdvertisedDeviceCallbacks {
@@ -80,13 +81,10 @@ class MyAdvertisedDeviceCallbacks : public NimBLEAdvertisedDeviceCallbacks {
         // }
 
         Serial.print(advertisedDevice->getName().c_str());
-        Serial.print(" ");
-        Serial.print(advertisedDevice->getAddress().toString().c_str());
         Serial.printf(" %4.2f %4.2f %d\n", tempInC, humPct, battPct);
 
         // Send it off to ESP_NOW
         createAndSendJSON(
-          advertisedDevice->getAddress().toString(), 
           advertisedDevice->getName(), 
           tempInC, 
           humPct,
@@ -100,6 +98,7 @@ void setup() {
   Serial.begin(115200);
   Serial.printf("%s Is Now Woke!\n", DEVICE_NAME);
 
+  NimBLEDevice::setScanDuplicateCacheSize(10);
   NimBLEDevice::init("");
   pBLEScan = NimBLEDevice::getScan();  // create new scan
   // Set the callback for when devices are discovered, include duplicates.
@@ -125,5 +124,10 @@ void loop() {
     pBLEScan->start(0, nullptr, false);
   }
 
+  // Free memory from unused devices?
+  if (pBLEScan->getResults().getCount() > 4){
+    Serial.println(pBLEScan->getResults().getCount());
+    pBLEScan->clearResults();
+  }
   delay(2000);
 }
