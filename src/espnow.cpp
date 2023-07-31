@@ -8,10 +8,9 @@
      Send uptime and stack data to Nextion serial port
 */
 #include "espnow.h"
-
 #include <Arduino.h>
 
-// MAC Address of ESP_NOW receiver
+// MAC Address of ESP_NOW receiver (broadcast address)
 uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 esp_now_peer_info_t peerInfo;
 
@@ -56,26 +55,25 @@ void writeToEspNow(void *parameter) {
 
 // Send heartbeat out to ESP_NOW broadcastAddress
 void espnowHeartbeat(void *parameter) {
-  std::string jsonString = "";
-  jsonString.reserve(ESP_BUFFER_SIZE + 2);
   for (;;) {
     uptime();
     {
+      char buffer[ESP_BUFFER_SIZE] = {0};
       StaticJsonDocument<ESP_BUFFER_SIZE> doc;
       doc["D"] = DEVICE_NAME;
       doc["T"] = uptimeBuffer;
       doc["R"] = uxTaskGetStackHighWaterMark(xhandleHeartbeat);
       doc["W"] = uxTaskGetStackHighWaterMark(xhandleEspNowWriteHandle);
       doc["Q"] = uxQueueMessagesWaiting(send_to_EspNow_queue);
-      doc["H"] = esp_get_minimum_free_heap_size();
+      doc["H"] = esp_get_free_heap_size();
+      doc["M"] = esp_get_minimum_free_heap_size();
 
-      serializeJson(doc, jsonString);  // Convert JsonDoc to JSON string
-      if (!espNowSend(jsonString)) {
+      serializeJson(doc, buffer);  // Convert JsonDoc to JSON string
+      if (!espNowSend(buffer)) {
         Serial.print("Error sending data: ");
       }
     }
-    jsonString.clear();
-    vTaskDelay(10000 / portTICK_PERIOD_MS);
+    vTaskDelay(HEARTBEAT / portTICK_PERIOD_MS);
   }
 }
 

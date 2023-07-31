@@ -21,12 +21,10 @@ Sample ESP-NOW packet:
 }
 
 */
-
 #include <Arduino.h>
-
+#include "settings.h"
 #include "NimBLEDevice.h"
 #include "espnow.h"
-#include "settings.h"
 
 NimBLEScan* pBLEScan;
 NimBLEUUID serviceUuid("ec88");  // Govee 5074 serivice UUID
@@ -34,8 +32,7 @@ NimBLEUUID serviceUuid("ec88");  // Govee 5074 serivice UUID
 extern uint8_t broadcastAddress[];  // ESP-NOW broadcast Address
 
 // Create JSON doc and forward to ESP-NOW queue
-bool createAndSendJSON(const std::string& deviceName, double tempInC, double humidity,
-                       float batteryPct) {
+bool createAndSendJSON(const std::string& deviceName, double tempInC, double humidity, float batteryPct) {
   char buffer[ESP_BUFFER_SIZE] = {0};
   StaticJsonDocument<ESP_BUFFER_SIZE * 2> doc;
 
@@ -44,7 +41,7 @@ bool createAndSendJSON(const std::string& deviceName, double tempInC, double hum
   doc[deviceName + "/humidity"] = humidity;
   doc[deviceName + "/battery"] = batteryPct;
 
-  if (serializeJson(doc, buffer) <= ESP_BUFFER_SIZE){
+  if (serializeJson(doc, buffer) <= ESP_BUFFER_SIZE) {
     bool result = espNowSend(buffer);
     doc.clear();
     return result;
@@ -66,16 +63,15 @@ class MyAdvertisedDeviceCallbacks : public NimBLEAdvertisedDeviceCallbacks {
           ((byte)advertisedDevice->getManufacturerData().data()[1] == 0xec)) {
         // Extract temperature, humidity and battery pct.
         double tempInC = ((double)((int16_t)((advertisedDevice->getManufacturerData()[3] << 0) |
-                                            (advertisedDevice->getManufacturerData()[4]) << 8))) /
-                        100;
+                                             (advertisedDevice->getManufacturerData()[4]) << 8))) /
+                         100;
         double humPct = ((double)((int16_t)((advertisedDevice->getManufacturerData()[5] << 0) |
-                                           (advertisedDevice->getManufacturerData()[6]) << 8))) /
-                       100;
+                                            (advertisedDevice->getManufacturerData()[6]) << 8))) /
+                        100;
         uint8_t battPct = (uint8_t)advertisedDevice->getManufacturerData()[7];
 
-        // char* payloaddata = NimBLEUtils::buildHexData(NULL, (uint8_t*)advertisedDevice->getPayload(), advertisedDevice->getPayloadLength());
-        // Serial.println(payloaddata);
-        // if (payloaddata != NULL) {
+        // char* payloaddata = NimBLEUtils::buildHexData(NULL, (uint8_t*)advertisedDevice->getPayload(),
+        // advertisedDevice->getPayloadLength()); Serial.println(payloaddata); if (payloaddata != NULL) {
         //   free(payloaddata);
         // }
 
@@ -83,11 +79,7 @@ class MyAdvertisedDeviceCallbacks : public NimBLEAdvertisedDeviceCallbacks {
         Serial.printf(" %4.2f %4.2f %d\n", tempInC, humPct, battPct);
 
         // Send it off to ESP_NOW
-        createAndSendJSON(
-          advertisedDevice->getName(), 
-          tempInC, 
-          humPct,
-          battPct);
+        createAndSendJSON(advertisedDevice->getName(), tempInC, humPct, battPct);
       }
     } else {
       // Serial.println("Erasing Device " + (String)advertisedDevice->toString().c_str());
@@ -126,7 +118,7 @@ void loop() {
     pBLEScan->start(0, nullptr, false);
   }
   // Free memory from unused devices?
-  if (pBLEScan->getResults().getCount() > 10){
+  if (pBLEScan->getResults().getCount() > 10) {
     pBLEScan->clearResults();
   }
   delay(2000);
