@@ -2,7 +2,7 @@
 
 Proof of concept. May leak memory, crash, etc.
 
-Uses ArduinoJSON, NimBLE, ESP-NOW
+Uses ArduinoJSON, NimBLE-Arduino, ESP-NOW
 
 Listens for BLE advertisements from any GOVEE 5074 sensor 
   - extracts temperature and humidity from BLE advertisement

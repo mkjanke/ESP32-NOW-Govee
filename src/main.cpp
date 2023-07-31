@@ -3,8 +3,6 @@ GOVEE 5074 Temperature scanner for ESP32
 
 Proof of concept. May or may not leak memory, crash, etc.
 
-Not valid for temperature values below 0C.
-
 Uses ArduinoJSON, NimBLE, ESP-NOW
 
 Listens for BLE advertisements from any GOVEE 5074 sensor
