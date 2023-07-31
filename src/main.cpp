@@ -12,7 +12,6 @@ Listens for BLE advertisements from any GOVEE 5074 sensor
   - creates JSON doc
   - forwards doc to ESP-NOW broadcast address
 
-
 Sample ESP-NOW packet:
 {
   "D":"ESP-GOVEE",
@@ -90,6 +89,9 @@ class MyAdvertisedDeviceCallbacks : public NimBLEAdvertisedDeviceCallbacks {
           humPct,
           battPct);
       }
+    } else {
+      // Serial.println("Erasing Device " + (String)advertisedDevice->toString().c_str());
+      pBLEScan->erase(advertisedDevice->getAddress());
     }
   }
 };
@@ -123,10 +125,8 @@ void loop() {
     Serial.println("Restarting BLE scan");
     pBLEScan->start(0, nullptr, false);
   }
-
   // Free memory from unused devices?
-  if (pBLEScan->getResults().getCount() > 4){
-    Serial.println(pBLEScan->getResults().getCount());
+  if (pBLEScan->getResults().getCount() > 10){
     pBLEScan->clearResults();
   }
   delay(2000);
