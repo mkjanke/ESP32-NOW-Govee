@@ -111,7 +111,7 @@ void setup() {
 void loop() {
   // If an error occurs that stops the scan, it will be restarted here.
   if (pBLEScan->isScanning() == false) {
-    // Start scan with: duration = 0 seconds(forever), no scan end callback, not a continuation of a previous scan.
+    // Start scan with: duration = 30 seconds, no scan end callback, not a continuation of a previous scan.
     Serial.println("Restarting BLE scan");
     pBLEScan->start(30, nullptr, false);
   }
