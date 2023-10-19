@@ -113,11 +113,7 @@ void loop() {
   if (pBLEScan->isScanning() == false) {
     // Start scan with: duration = 0 seconds(forever), no scan end callback, not a continuation of a previous scan.
     Serial.println("Restarting BLE scan");
-    pBLEScan->start(0, nullptr, false);
+    pBLEScan->start(30, nullptr, false);
   }
-  // Free memory from unused devices?
-  if (pBLEScan->getResults().getCount() > 10) {
-    pBLEScan->clearResults();
-  }
-  delay(2000);
+  delay(HEARTBEAT);
 }
