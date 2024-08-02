@@ -18,6 +18,7 @@ Sample ESP-NOW packet:
   "Govee_H5074_DB3A/battery":97
 }
 ```
+The companion app to this: https://github.com/mkjanke/ESP32-Now-JSON-GW. This gateway app receives ESP-NOW broadcasts and forwards them to an attached serial port. 
 
 # Govee H5074 decode notes
 
