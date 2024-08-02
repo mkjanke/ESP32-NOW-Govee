@@ -20,9 +20,10 @@ Sample ESP-NOW packet:
 
 */
 #include <Arduino.h>
-#include "settings.h"
+
 #include "NimBLEDevice.h"
 #include "espnow.h"
+#include "settings.h"
 
 NimBLEScan* pBLEScan;
 NimBLEUUID serviceUuid("ec88");  // Govee 5074 serivice UUID
@@ -32,7 +33,7 @@ extern uint8_t broadcastAddress[];  // ESP-NOW broadcast Address
 // Create JSON doc and forward to ESP-NOW queue
 bool createAndSendJSON(const std::string& deviceName, double tempInC, double humidity, float batteryPct) {
   char buffer[ESP_BUFFER_SIZE] = {0};
-  StaticJsonDocument<ESP_BUFFER_SIZE * 2> doc;
+  JsonDocument doc;
 
   doc["D"] = DEVICE_NAME;
   doc[deviceName + "/tempInC"] = tempInC;
@@ -41,10 +42,10 @@ bool createAndSendJSON(const std::string& deviceName, double tempInC, double hum
 
   if (serializeJson(doc, buffer) <= ESP_BUFFER_SIZE) {
     bool result = espNowSend(buffer);
-    doc.clear();
+    // doc.clear();
     return result;
   }
-  doc.clear();
+  // doc.clear();
   return false;
 }
 

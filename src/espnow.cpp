@@ -1,70 +1,77 @@
 /*
-  Task writeToEspNow:
+  Task task_writeToEspNow:
     Dequeue data from ESP-NOW queue, forward to ESP-NOW:
-      send_to_EspNow_Queue --> writeToEspNow() --> Outgoing ESP-NOW packet
+      send_to_EspNow_Queue --> task_writeToEspNow() --> Outgoing ESP-NOW packet
 
   Task espnowHeartbeat:
      Send uptime and stack data to send_to_EspNow_Queue
      Send uptime and stack data to Nextion serial port
 */
 #include "espnow.h"
+
 #include <Arduino.h>
 
 // MAC Address of ESP_NOW receiver (broadcast address)
 uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 esp_now_peer_info_t peerInfo;
 
+/// @brief handle to task that reads msgs from send_to_EspNow_queue and
+///        writes msgs to ESP-NOW broadcast address
 TaskHandle_t xhandleEspNowWriteHandle = NULL;
+
+/// @brief Periodic heartbeat packet sent to ESP-NOW broadcast address
 TaskHandle_t xhandleHeartbeat = NULL;
 
-// static QueueHandle_t send_to_Serial_queue;
+/// @brief Queue to handle messages received from BLE
+///        and sent to ESP-NOW
 static QueueHandle_t send_to_EspNow_queue;
 
-char uptimeBuffer[12];  // scratch space for storing formatted 'uptime' string
-
-// Calculate uptime & populate uptime buffer for future use
-void uptime() {
+/// @brief Calculate uptime & populate uptime buffer for future use
+/// @param buffer char * buffer to store uptime information
+/// @param size Size of uptime buffer
+void uptime(char *buffer, uint8_t size) {
   // Constants for uptime calculations
   static const uint32_t millis_in_day = 1000 * 60 * 60 * 24;
   static const uint32_t millis_in_hour = 1000 * 60 * 60;
   static const uint32_t millis_in_minute = 1000 * 60;
 
-  uint8_t days = millis() / (millis_in_day);
-  uint8_t hours = (millis() - (days * millis_in_day)) / millis_in_hour;
-  uint8_t minutes = (millis() - (days * millis_in_day) - (hours * millis_in_hour)) / millis_in_minute;
-  snprintf(uptimeBuffer, sizeof(uptimeBuffer), "%2dd%2dh%2dm", days, hours, minutes);
+  unsigned long now = millis();
+  uint8_t days = now / (millis_in_day);
+  uint8_t hours = (now - (days * millis_in_day)) / millis_in_hour;
+  uint8_t minutes = (now - (days * millis_in_day) - (hours * millis_in_hour)) / millis_in_minute;
+  snprintf(buffer, size, "%2dd%2dh%2dm", days, hours, minutes);
 }
 
-// Tasks
-
-// Read from ESP Send queue and forward to ESP-NOW
-// ToDo check string length and send only length bytes
-// Check and print ESP error message
-void writeToEspNow(void *parameter) {
+/// @brief  Read from queue send_to_EspNow_queue and forward to ESP-NOW
+///         Check and print ESP error message
+/// @param parameter
+void task_writeToEspNow(void *parameter) {
   char sendBuffer[ESP_BUFFER_SIZE];
   for (;;) {
     vTaskDelay(10 / portTICK_PERIOD_MS);
     // Dequeue
     if (xQueueReceive(send_to_EspNow_queue, sendBuffer, portMAX_DELAY) == pdTRUE) {
-      Serial.print("writeToEspNow");
+      Serial.print("task_writeToEspNow");
       Serial.println(sendBuffer);
       esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)sendBuffer, ESP_BUFFER_SIZE);
     }
   }
 }
 
-// Send heartbeat out to ESP_NOW broadcastAddress
+/// @brief Send periodic heartbeat out to ESP_NOW broadcast address
+/// @param parameter
 void espnowHeartbeat(void *parameter) {
+  char uptimeBuffer[12];  // scratch space for storing formatted 'uptime' string
+
   for (;;) {
-    uptime();
+    uptime(uptimeBuffer, sizeof(uptimeBuffer));
     {
       char buffer[ESP_BUFFER_SIZE] = {0};
-      StaticJsonDocument<ESP_BUFFER_SIZE> doc;
+      JsonDocument doc;
       doc["D"] = DEVICE_NAME;
       doc["T"] = uptimeBuffer;
       doc["R"] = uxTaskGetStackHighWaterMark(xhandleHeartbeat);
       doc["W"] = uxTaskGetStackHighWaterMark(xhandleEspNowWriteHandle);
-      doc["Q"] = uxQueueMessagesWaiting(send_to_EspNow_queue);
       doc["H"] = esp_get_free_heap_size();
       doc["M"] = esp_get_minimum_free_heap_size();
 
@@ -77,9 +84,9 @@ void espnowHeartbeat(void *parameter) {
   }
 }
 
-// Functions
-
-// Queue message to send_to_EspNow_queue
+/// @brief Queue char * message to send_to_EspNow_queue
+/// @param charMessage char * message to be sent to ESP-NOW
+/// @return Success or failure
 bool espNowSend(const char *charMessage) {
   char buffer[ESP_BUFFER_SIZE] = {0};
   if (strlen(charMessage) <= ESP_BUFFER_SIZE - 1) {
@@ -94,6 +101,9 @@ bool espNowSend(const char *charMessage) {
   return false;
 }
 
+/// @brief Queue std::string message to send_to_EspNow_queue
+/// @param stringMessage std::string message to be sent to ESP-NOW
+/// @return Success or failure
 bool espNowSend(const std::string &stringMessage) {
   char charMessage[ESP_BUFFER_SIZE] = {0};
   if (stringMessage.size() <= ESP_BUFFER_SIZE) {
@@ -108,6 +118,9 @@ bool espNowSend(const std::string &stringMessage) {
   return false;
 }
 
+/// @brief Queue JsonDocument message to send_to_EspNow_queue
+/// @param doc JsonDocument document to be sent to ESP-NOW
+/// @return Success or failure
 bool espNowSend(const JsonDocument &doc) {
   char jsonMessage[ESP_BUFFER_SIZE] = {0};
   if (serializeJson(doc, jsonMessage, ESP_BUFFER_SIZE) <= ESP_BUFFER_SIZE) {
@@ -121,7 +134,9 @@ bool espNowSend(const JsonDocument &doc) {
   return false;
 }
 
-// Initialize ESP_NOW interface. Call once from setup()
+/// @brief Initialize ESP-NOW interface, register callbacks
+///        Call once from setup()
+/// @return True upon success, else false
 bool initEspNow() {
   // Initialize ESP-NOW
   if (esp_now_init() != ESP_OK) {
@@ -148,7 +163,7 @@ bool initEspNow() {
     return false;
   }
   xTaskCreate(espnowHeartbeat, "Heartbeat Handler", 2400, NULL, 4, &xhandleHeartbeat);
-  xTaskCreate(writeToEspNow, "ESP_NOW Write Handler", 2000, NULL, 4, &xhandleEspNowWriteHandle);
+  xTaskCreate(task_writeToEspNow, "ESP_NOW Write Handler", 2000, NULL, 4, &xhandleEspNowWriteHandle);
 
   return true;
 }
